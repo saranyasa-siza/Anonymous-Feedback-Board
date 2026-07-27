@@ -58,7 +58,8 @@ jspm_packages/
 *.sln
 
 # Compact
-managed/
+# managed/ is intentionally tracked for build (stub files needed by Vercel)
+!contract/src/managed/
 
 .claude
 .midnight-expert
