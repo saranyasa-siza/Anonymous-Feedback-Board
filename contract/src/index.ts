@@ -1,8 +1,6 @@
-import { CompiledContract } from "@midnight-ntwrk/midnight-js-protocol/compact-js";
-
 // Re-export contract types and runtime
-export { State, ledger, pureCircuits } from "./managed/feedback-board/contract/index.js";
-export type { Ledger, Contract as CompactContract } from "./managed/feedback-board/contract/index.js";
+export { State, ledger, pureCircuits } from "./managed/feedback-board/contract/index";
+export type { Ledger, Contract as CompactContract } from "./managed/feedback-board/contract/index";
 
 // Re-export witness types and implementations
 export type { FeedbackBoardPrivateState } from "./witnesses";

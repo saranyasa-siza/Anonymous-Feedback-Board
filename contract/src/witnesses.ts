@@ -2,7 +2,7 @@
  * Private state and witness implementations for the Anonymous Feedback Board contract.
  */
 
-import { Ledger } from "./managed/feedback-board/contract/index.js";
+import { Ledger } from "./managed/feedback-board/contract/index";
 import { WitnessContext } from "@midnight-ntwrk/midnight-js-protocol/compact-runtime";
 
 export type FeedbackBoardPrivateState = {
