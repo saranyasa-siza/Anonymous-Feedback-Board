@@ -13,28 +13,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { createTheme, alpha } from '@mui/material';
-
-const midnightGrey = alpha('#a8a8a8', 0.7);
+import { createTheme } from '@mui/material';
 
 export const theme = createTheme({
   typography: {
-    fontFamily: 'Helvetica',
-    allVariants: {
-      color: 'white',
-    },
+    fontFamily: '"Inter", "Helvetica", sans-serif',
+    allVariants: { color: '#e2e8f0' },
   },
   palette: {
-    primary: {
-      main: midnightGrey,
-      light: alpha(midnightGrey, 0.5),
-      dark: alpha(midnightGrey, 0.9),
+    mode: 'dark',
+    primary: { main: '#7c3aed' },
+    secondary: { main: '#06b6d4' },
+    background: { default: '#0f0f1a', paper: '#1a1a2e' },
+    text: { primary: '#e2e8f0', secondary: '#94a3b8' },
+    error: { main: '#ef4444' },
+    success: { main: '#10b981' },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          border: '1px solid rgba(124,58,237,0.2)',
+          borderRadius: 16,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        },
+      },
     },
-    secondary: {
-      main: '#8c8c8c',
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: 8, textTransform: 'none', fontWeight: 600 },
+        containedPrimary: {
+          background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+          '&:hover': { background: 'linear-gradient(135deg, #6d28d9, #5b21b6)' },
+        },
+      },
     },
-    background: {
-      default: '#464655',
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 8,
+            '& fieldset': { borderColor: 'rgba(124,58,237,0.3)' },
+            '&:hover fieldset': { borderColor: 'rgba(124,58,237,0.6)' },
+            '&.Mui-focused fieldset': { borderColor: '#7c3aed' },
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { borderRadius: 6 },
+      },
     },
   },
 });

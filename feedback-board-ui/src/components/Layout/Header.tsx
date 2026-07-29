@@ -16,18 +16,16 @@
 import React, { useState } from 'react';
 import {
   AppBar, Box, Button, Chip, Tooltip, CircularProgress,
-  Menu, MenuItem, ListItemIcon, ListItemText,
+  Menu, MenuItem, ListItemIcon, ListItemText, Typography,
 } from '@mui/material';
+import LockIcon from '@mui/icons-material/Lock';
 import { useWallet } from '../../hooks/useWallet';
 
-/**
- * A simple application level header for the bulletin board application.
- */
 export const Header: React.FC = () => {
   const { isConnected, isConnecting, hasWallets, availableWallets, address, connectedWalletName, error, connect, disconnect } = useWallet();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const shortAddress = address ? `${address.slice(0, 8)}...${address.slice(-6)}` : null;
+  const shortAddress = address ? `${address.slice(0, 10)}...${address.slice(-8)}` : null;
 
   const handleConnectClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (availableWallets.length === 1) {
@@ -41,33 +39,56 @@ export const Header: React.FC = () => {
     <AppBar
       position="static"
       data-testid="header"
+      elevation={0}
       sx={{
-        backgroundColor: '#000',
+        background: 'linear-gradient(90deg, #0f0f1a 0%, #1a1a2e 100%)',
+        borderBottom: '1px solid rgba(124,58,237,0.25)',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        px: { xs: 2, md: 6 },
+        py: 1.5,
       }}
     >
-      <Box
-        sx={{ display: 'flex', px: 10, py: 2.2, alignItems: 'center' }}
-        data-testid="header-logo"
-      >
-        <img src="/midnight-logo.png" alt="logo-image" height={66} />
+      {/* Brand */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            width: 36, height: 36, borderRadius: '10px',
+            background: 'linear-gradient(135deg, #7c3aed, #06b6d4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <LockIcon sx={{ fontSize: 18, color: '#fff' }} />
+        </Box>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1, color: '#e2e8f0', letterSpacing: '-0.3px' }}>
+            Anonymous Feedback
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#7c3aed', fontWeight: 500 }}>
+            Midnight Network · Preprod
+          </Typography>
+        </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 10 }}>
+      {/* Wallet area */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         {error && (
           <Tooltip title={error}>
-            <Chip label="Wallet error" color="error" size="small" />
+            <Chip label="Error" color="error" size="small" sx={{ fontSize: 11 }} />
           </Tooltip>
         )}
         {isConnected && shortAddress && (
           <Tooltip title={address!}>
             <Chip
-              label={`${connectedWalletName ? connectedWalletName + ' · ' : ''}${shortAddress}`}
+              label={connectedWalletName ? `${connectedWalletName} · ${shortAddress}` : shortAddress}
               size="small"
-              sx={{ color: '#fff', borderColor: '#555', fontFamily: 'monospace' }}
-              variant="outlined"
+              sx={{
+                fontFamily: 'monospace', fontSize: 11,
+                background: 'rgba(124,58,237,0.15)',
+                border: '1px solid rgba(124,58,237,0.4)',
+                color: '#c4b5fd',
+              }}
             />
           </Tooltip>
         )}
@@ -76,36 +97,36 @@ export const Header: React.FC = () => {
           size="small"
           disabled={isConnecting || (!hasWallets && !isConnected)}
           onClick={isConnected ? disconnect : handleConnectClick}
-          startIcon={isConnecting ? <CircularProgress size={14} color="inherit" /> : null}
+          startIcon={isConnecting ? <CircularProgress size={13} color="inherit" /> : null}
           title={!hasWallets ? 'No Midnight wallet detected. Install Lace or 1AM.' : undefined}
           sx={{
-            textTransform: 'none',
-            borderColor: isConnected ? '#555' : undefined,
-            color: isConnected ? '#aaa' : undefined,
-            whiteSpace: 'nowrap',
+            textTransform: 'none', fontWeight: 600, fontSize: 13,
+            ...(isConnected ? {
+              borderColor: 'rgba(124,58,237,0.4)', color: '#94a3b8',
+              '&:hover': { borderColor: '#7c3aed', color: '#c4b5fd', background: 'rgba(124,58,237,0.08)' },
+            } : {}),
           }}
         >
           {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : !hasWallets ? 'No Wallet' : 'Connect Wallet'}
         </Button>
 
-        {/* Wallet picker — shown when multiple wallets are installed */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={() => setAnchorEl(null)}
-          PaperProps={{ sx: { backgroundColor: '#1a1a1a', color: '#fff' } }}
+          PaperProps={{ sx: { background: '#1a1a2e', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 2, minWidth: 180 } }}
         >
+          <Typography variant="caption" sx={{ px: 2, py: 0.5, display: 'block', color: '#64748b' }}>Select wallet</Typography>
           {availableWallets.map((wallet, i) => (
-            <MenuItem
-              key={i}
-              onClick={() => { setAnchorEl(null); connect(wallet); }}
+            <MenuItem key={i} onClick={() => { setAnchorEl(null); connect(wallet); }}
+              sx={{ '&:hover': { background: 'rgba(124,58,237,0.15)' } }}
             >
               {wallet.icon && (
                 <ListItemIcon sx={{ minWidth: 32 }}>
                   <img src={wallet.icon} alt="" width={20} height={20} style={{ borderRadius: 4 }} />
                 </ListItemIcon>
               )}
-              <ListItemText primary={wallet.name ?? `Wallet ${i + 1}`} />
+              <ListItemText primary={wallet.name ?? `Wallet ${i + 1}`} primaryTypographyProps={{ fontSize: 14 }} />
             </MenuItem>
           ))}
         </Menu>
