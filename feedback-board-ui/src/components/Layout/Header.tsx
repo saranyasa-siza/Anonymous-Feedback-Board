@@ -21,7 +21,7 @@ import { useWallet } from '../../hooks/useWallet';
  * A simple application level header for the bulletin board application.
  */
 export const Header: React.FC = () => {
-  const { isConnected, address, isConnecting, error, connect, disconnect } = useWallet();
+  const { isConnected, isConnecting, walletFound, address, error, connect, disconnect } = useWallet();
 
   const shortAddress = address ? `${address.slice(0, 8)}...${address.slice(-6)}` : null;
 
@@ -60,9 +60,10 @@ export const Header: React.FC = () => {
         <Button
           variant={isConnected ? 'outlined' : 'contained'}
           size="small"
-          disabled={isConnecting}
+          disabled={isConnecting || !walletFound}
           onClick={isConnected ? disconnect : connect}
           startIcon={isConnecting ? <CircularProgress size={14} color="inherit" /> : null}
+          title={!walletFound ? 'Lace wallet not detected. Please install it.' : undefined}
           sx={{
             textTransform: 'none',
             borderColor: isConnected ? '#555' : undefined,
@@ -70,7 +71,7 @@ export const Header: React.FC = () => {
             whiteSpace: 'nowrap',
           }}
         >
-          {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : 'Connect Wallet'}
+          {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : !walletFound ? 'No Wallet' : 'Connect Wallet'}
         </Button>
       </Box>
     </AppBar>

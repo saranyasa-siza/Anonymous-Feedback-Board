@@ -1,44 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import '@midnight-ntwrk/dapp-connector-api';
-import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
+import type { InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
+
+type WalletStatus = 'idle' | 'no-wallet' | 'ready' | 'connecting' | 'connected';
 
 type WalletState = {
-  isConnected: boolean;
+  status: WalletStatus;
   address: string | null;
-  isConnecting: boolean;
   error: string | null;
 };
 
+const findWallet = (): InitialAPI | null => {
+  const midnight = window.midnight;
+  if (!midnight) return null;
+  // Try friendly key first (Lace), then scan all entries
+  if (midnight.mnLace) return midnight.mnLace as InitialAPI;
+  const found = Object.values(midnight).find((w): w is InitialAPI => !!(w as InitialAPI)?.connect);
+  return found ?? null;
+};
+
 export const useWallet = () => {
-  const [state, setState] = useState<WalletState>({
-    isConnected: false,
-    address: null,
-    isConnecting: false,
-    error: null,
-  });
+  const [state, setState] = useState<WalletState>({ status: 'idle', address: null, error: null });
+  const walletRef = useRef<InitialAPI | null>(null);
+
+  // Poll for wallet injection on mount (extension loads asynchronously)
+  useEffect(() => {
+    const found = findWallet();
+    if (found) {
+      walletRef.current = found;
+      setState((s) => ({ ...s, status: 'ready' }));
+      return;
+    }
+    let elapsed = 0;
+    const t = setInterval(() => {
+      elapsed += 100;
+      const w = findWallet();
+      if (w) {
+        walletRef.current = w;
+        setState((s) => ({ ...s, status: 'ready' }));
+        clearInterval(t);
+      } else if (elapsed >= 5000) {
+        setState((s) => ({ ...s, status: 'no-wallet' }));
+        clearInterval(t);
+      }
+    }, 100);
+    return () => clearInterval(t);
+  }, []);
 
   const connect = async () => {
-    setState((s) => ({ ...s, isConnecting: true, error: null }));
+    if (!walletRef.current) {
+      setState((s) => ({ ...s, error: 'No Midnight wallet found. Please install Lace.' }));
+      return;
+    }
+    setState((s) => ({ ...s, status: 'connecting', error: null }));
     try {
-      const wallets = Object.values(window.midnight ?? {}).filter(
-        (w): w is InitialAPI => !!w?.name && !!w?.apiVersion,
-      );
-      if (wallets.length === 0) throw new Error('No Midnight wallet found. Please install Lace.');
-
-      const api: ConnectedAPI = await wallets[0].connect('preprod');
+      const api = await walletRef.current.connect('preprod');
       const status = await api.getConnectionStatus();
       if (status.status !== 'connected') throw new Error('Wallet connection failed.');
-
       const { unshieldedAddress } = await api.getUnshieldedAddress();
-      setState({ isConnected: true, address: unshieldedAddress, isConnecting: false, error: null });
+      setState({ status: 'connected', address: unshieldedAddress, error: null });
     } catch (err) {
-      setState({ isConnected: false, address: null, isConnecting: false, error: (err as Error).message });
+      setState({ status: 'ready', address: null, error: (err as Error).message });
     }
   };
 
   const disconnect = () => {
-    setState({ isConnected: false, address: null, isConnecting: false, error: null });
+    setState({ status: walletRef.current ? 'ready' : 'no-wallet', address: null, error: null });
   };
 
-  return { ...state, connect, disconnect };
+  return {
+    isConnected: state.status === 'connected',
+    isConnecting: state.status === 'connecting',
+    walletFound: state.status !== 'idle' && state.status !== 'no-wallet',
+    address: state.address,
+    error: state.error,
+    connect,
+    disconnect,
+  };
 };
