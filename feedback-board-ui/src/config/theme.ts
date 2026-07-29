@@ -43,7 +43,7 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: { borderRadius: 8, textTransform: 'none', fontWeight: 600 },
-        containedPrimary: {
+        contained: {
           background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
           '&:hover': { background: 'linear-gradient(135deg, #6d28d9, #5b21b6)' },
         },

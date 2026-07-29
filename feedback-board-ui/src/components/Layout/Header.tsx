@@ -114,7 +114,7 @@ export const Header: React.FC = () => {
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={() => setAnchorEl(null)}
-          PaperProps={{ sx: { background: '#1a1a2e', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 2, minWidth: 180 } }}
+          slotProps={{ paper: { sx: { background: '#1a1a2e', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 2, minWidth: 180 } } }}
         >
           <Typography variant="caption" sx={{ px: 2, py: 0.5, display: 'block', color: '#64748b' }}>Select wallet</Typography>
           {availableWallets.map((wallet, i) => (
@@ -126,7 +126,7 @@ export const Header: React.FC = () => {
                   <img src={wallet.icon} alt="" width={20} height={20} style={{ borderRadius: 4 }} />
                 </ListItemIcon>
               )}
-              <ListItemText primary={wallet.name ?? `Wallet ${i + 1}`} primaryTypographyProps={{ fontSize: 14 }} />
+              <ListItemText primary={wallet.name ?? `Wallet ${i + 1}`} slotProps={{ primary: { style: { fontSize: 14 } } }} />
             </MenuItem>
           ))}
         </Menu>
