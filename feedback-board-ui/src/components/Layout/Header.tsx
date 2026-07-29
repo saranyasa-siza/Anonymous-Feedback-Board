@@ -78,10 +78,15 @@ export const Header: React.FC = () => {
             <Chip label="Error" color="error" size="small" sx={{ fontSize: 11 }} />
           </Tooltip>
         )}
-        {isConnected && shortAddress && (
-          <Tooltip title={address!}>
+        {isConnected && (
+          <Tooltip title={address ?? 'Address unavailable'}>
             <Chip
-              label={connectedWalletName ? `${connectedWalletName} · ${shortAddress}` : shortAddress}
+              label={
+                connectedWalletName && shortAddress ? `${connectedWalletName} · ${shortAddress}`
+                : shortAddress ? shortAddress
+                : connectedWalletName ? `${connectedWalletName} · Connected`
+                : 'Connected'
+              }
               size="small"
               sx={{
                 fontFamily: 'monospace', fontSize: 11,

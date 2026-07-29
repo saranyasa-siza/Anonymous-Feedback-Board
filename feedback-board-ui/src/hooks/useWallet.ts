@@ -58,22 +58,24 @@ export const useWallet = () => {
     setState((s) => ({ ...s, status: 'connecting', error: null }));
     try {
       const api = await wallet.connect('preprod');
-      // Try unshielded address first, fall back to shielded
       let address: string | null = null;
       try {
         const result = await api.getUnshieldedAddress();
         address = result.unshieldedAddress ?? null;
-      } catch {
-        // getUnshieldedAddress not supported by this wallet, try shielded
+        console.log('[useWallet] unshieldedAddress:', address);
+      } catch (e) {
+        console.warn('[useWallet] getUnshieldedAddress failed:', e);
       }
       if (!address) {
         try {
           const result = await api.getShieldedAddresses();
           address = result.shieldedAddress ?? null;
-        } catch {
-          // ignore
+          console.log('[useWallet] shieldedAddress:', address);
+        } catch (e) {
+          console.warn('[useWallet] getShieldedAddresses failed:', e);
         }
       }
+      console.log('[useWallet] final address:', address, 'wallet:', wallet.name);
       setState((s) => ({
         ...s,
         status: 'connected',
@@ -82,6 +84,7 @@ export const useWallet = () => {
         error: null,
       }));
     } catch (err) {
+      console.error('[useWallet] connect failed:', err);
       setState((s) => ({ ...s, status: 'ready', address: null, connectedWalletName: null, error: (err as Error).message }));
     }
   };
