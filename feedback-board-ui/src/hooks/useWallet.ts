@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import '@midnight-ntwrk/dapp-connector-api';
 import type { InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 
@@ -58,24 +58,18 @@ export const useWallet = () => {
     setState((s) => ({ ...s, status: 'connecting', error: null }));
     try {
       const api = await wallet.connect('preprod');
+      const status = await api.getConnectionStatus();
+      if (status.status !== 'connected') throw new Error('Wallet connection failed.');
       let address: string | null = null;
       try {
-        const result = await api.getUnshieldedAddress();
-        address = result.unshieldedAddress ?? null;
-        console.log('[useWallet] unshieldedAddress:', address);
-      } catch (e) {
-        console.warn('[useWallet] getUnshieldedAddress failed:', e);
-      }
-      if (!address) {
+        const { unshieldedAddress } = await api.getUnshieldedAddress();
+        address = unshieldedAddress ?? null;
+      } catch {
         try {
-          const result = await api.getShieldedAddresses();
-          address = result.shieldedAddress ?? null;
-          console.log('[useWallet] shieldedAddress:', address);
-        } catch (e) {
-          console.warn('[useWallet] getShieldedAddresses failed:', e);
-        }
+          const { shieldedAddress } = await api.getShieldedAddresses();
+          address = shieldedAddress ?? null;
+        } catch { /* address stays null */ }
       }
-      console.log('[useWallet] final address:', address, 'wallet:', wallet.name);
       setState((s) => ({
         ...s,
         status: 'connected',
@@ -84,7 +78,6 @@ export const useWallet = () => {
         error: null,
       }));
     } catch (err) {
-      console.error('[useWallet] connect failed:', err);
       setState((s) => ({ ...s, status: 'ready', address: null, connectedWalletName: null, error: (err as Error).message }));
     }
   };
