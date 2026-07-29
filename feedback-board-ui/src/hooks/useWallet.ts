@@ -2,77 +2,88 @@ import { useState, useEffect, useRef } from 'react';
 import '@midnight-ntwrk/dapp-connector-api';
 import type { InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 
+const COMPATIBLE_API_VERSION = '4.x';
+
+const isCompatible = (w: unknown): w is InitialAPI => {
+  if (!w || typeof w !== 'object') return false;
+  const api = w as Record<string, unknown>;
+  if (typeof api['connect'] !== 'function') return false;
+  if (typeof api['apiVersion'] !== 'string') return false;
+  // Accept any 4.x version
+  return (api['apiVersion'] as string).startsWith('4.');
+};
+
+const discoverWallets = (): InitialAPI[] =>
+  Object.values(window.midnight ?? {}).filter(isCompatible);
+
 type WalletStatus = 'idle' | 'no-wallet' | 'ready' | 'connecting' | 'connected';
 
 type WalletState = {
   status: WalletStatus;
+  availableWallets: InitialAPI[];
   address: string | null;
+  connectedWalletName: string | null;
   error: string | null;
 };
 
-const findWallet = (): InitialAPI | null => {
-  const midnight = window.midnight;
-  if (!midnight) return null;
-  // Try friendly key first (Lace), then scan all entries
-  if (midnight.mnLace) return midnight.mnLace as InitialAPI;
-  const found = Object.values(midnight).find((w): w is InitialAPI => !!(w as InitialAPI)?.connect);
-  return found ?? null;
-};
-
 export const useWallet = () => {
-  const [state, setState] = useState<WalletState>({ status: 'idle', address: null, error: null });
-  const walletRef = useRef<InitialAPI | null>(null);
+  const [state, setState] = useState<WalletState>({
+    status: 'idle',
+    availableWallets: [],
+    address: null,
+    connectedWalletName: null,
+    error: null,
+  });
 
-  // Poll for wallet injection on mount (extension loads asynchronously)
+  // Poll for wallet injection on mount — extensions load asynchronously
   useEffect(() => {
-    const found = findWallet();
-    if (found) {
-      walletRef.current = found;
-      setState((s) => ({ ...s, status: 'ready' }));
-      return;
-    }
     let elapsed = 0;
     const t = setInterval(() => {
-      elapsed += 100;
-      const w = findWallet();
-      if (w) {
-        walletRef.current = w;
-        setState((s) => ({ ...s, status: 'ready' }));
+      const wallets = discoverWallets();
+      if (wallets.length > 0) {
+        setState((s) => ({ ...s, status: 'ready', availableWallets: wallets }));
         clearInterval(t);
-      } else if (elapsed >= 5000) {
-        setState((s) => ({ ...s, status: 'no-wallet' }));
-        clearInterval(t);
+      } else {
+        elapsed += 100;
+        if (elapsed >= 5000) {
+          setState((s) => ({ ...s, status: 'no-wallet' }));
+          clearInterval(t);
+        }
       }
     }, 100);
     return () => clearInterval(t);
   }, []);
 
-  const connect = async () => {
-    if (!walletRef.current) {
-      setState((s) => ({ ...s, error: 'No Midnight wallet found. Please install Lace.' }));
-      return;
-    }
+  const connect = async (wallet: InitialAPI) => {
     setState((s) => ({ ...s, status: 'connecting', error: null }));
     try {
-      const api = await walletRef.current.connect('preprod');
+      const api = await wallet.connect('preprod');
       const status = await api.getConnectionStatus();
       if (status.status !== 'connected') throw new Error('Wallet connection failed.');
       const { unshieldedAddress } = await api.getUnshieldedAddress();
-      setState({ status: 'connected', address: unshieldedAddress, error: null });
+      setState((s) => ({
+        ...s,
+        status: 'connected',
+        address: unshieldedAddress,
+        connectedWalletName: wallet.name ?? null,
+        error: null,
+      }));
     } catch (err) {
-      setState({ status: 'ready', address: null, error: (err as Error).message });
+      setState((s) => ({ ...s, status: 'ready', address: null, connectedWalletName: null, error: (err as Error).message }));
     }
   };
 
   const disconnect = () => {
-    setState({ status: walletRef.current ? 'ready' : 'no-wallet', address: null, error: null });
+    setState((s) => ({ ...s, status: 'ready', address: null, connectedWalletName: null, error: null }));
   };
 
   return {
     isConnected: state.status === 'connected',
     isConnecting: state.status === 'connecting',
-    walletFound: state.status !== 'idle' && state.status !== 'no-wallet',
+    hasWallets: state.availableWallets.length > 0,
+    availableWallets: state.availableWallets,
     address: state.address,
+    connectedWalletName: state.connectedWalletName,
     error: state.error,
     connect,
     disconnect,

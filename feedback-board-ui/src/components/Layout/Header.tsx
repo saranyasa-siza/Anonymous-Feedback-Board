@@ -13,17 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React from 'react';
-import { AppBar, Box, Button, Chip, Tooltip, CircularProgress } from '@mui/material';
+import React, { useState } from 'react';
+import {
+  AppBar, Box, Button, Chip, Tooltip, CircularProgress,
+  Menu, MenuItem, ListItemIcon, ListItemText,
+} from '@mui/material';
 import { useWallet } from '../../hooks/useWallet';
 
 /**
  * A simple application level header for the bulletin board application.
  */
 export const Header: React.FC = () => {
-  const { isConnected, isConnecting, walletFound, address, error, connect, disconnect } = useWallet();
+  const { isConnected, isConnecting, hasWallets, availableWallets, address, connectedWalletName, error, connect, disconnect } = useWallet();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const shortAddress = address ? `${address.slice(0, 8)}...${address.slice(-6)}` : null;
+
+  const handleConnectClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (availableWallets.length === 1) {
+      connect(availableWallets[0]);
+    } else {
+      setAnchorEl(e.currentTarget);
+    }
+  };
 
   return (
     <AppBar
@@ -50,20 +62,22 @@ export const Header: React.FC = () => {
           </Tooltip>
         )}
         {isConnected && shortAddress && (
-          <Chip
-            label={shortAddress}
-            size="small"
-            sx={{ color: '#fff', borderColor: '#555', fontFamily: 'monospace' }}
-            variant="outlined"
-          />
+          <Tooltip title={address!}>
+            <Chip
+              label={`${connectedWalletName ? connectedWalletName + ' · ' : ''}${shortAddress}`}
+              size="small"
+              sx={{ color: '#fff', borderColor: '#555', fontFamily: 'monospace' }}
+              variant="outlined"
+            />
+          </Tooltip>
         )}
         <Button
           variant={isConnected ? 'outlined' : 'contained'}
           size="small"
-          disabled={isConnecting || !walletFound}
-          onClick={isConnected ? disconnect : connect}
+          disabled={isConnecting || (!hasWallets && !isConnected)}
+          onClick={isConnected ? disconnect : handleConnectClick}
           startIcon={isConnecting ? <CircularProgress size={14} color="inherit" /> : null}
-          title={!walletFound ? 'Lace wallet not detected. Please install it.' : undefined}
+          title={!hasWallets ? 'No Midnight wallet detected. Install Lace or 1AM.' : undefined}
           sx={{
             textTransform: 'none',
             borderColor: isConnected ? '#555' : undefined,
@@ -71,8 +85,30 @@ export const Header: React.FC = () => {
             whiteSpace: 'nowrap',
           }}
         >
-          {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : !walletFound ? 'No Wallet' : 'Connect Wallet'}
+          {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : !hasWallets ? 'No Wallet' : 'Connect Wallet'}
         </Button>
+
+        {/* Wallet picker — shown when multiple wallets are installed */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          PaperProps={{ sx: { backgroundColor: '#1a1a1a', color: '#fff' } }}
+        >
+          {availableWallets.map((wallet, i) => (
+            <MenuItem
+              key={i}
+              onClick={() => { setAnchorEl(null); connect(wallet); }}
+            >
+              {wallet.icon && (
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <img src={wallet.icon} alt="" width={20} height={20} style={{ borderRadius: 4 }} />
+                </ListItemIcon>
+              )}
+              <ListItemText primary={wallet.name ?? `Wallet ${i + 1}`} />
+            </MenuItem>
+          ))}
+        </Menu>
       </Box>
     </AppBar>
   );
