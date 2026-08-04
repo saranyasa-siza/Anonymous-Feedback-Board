@@ -347,19 +347,13 @@ The CLI uses configuration files in `feedback-board-cli/`:
    - Deploy or join a contract
    - Submit or remove feedback through the web interface
 
-## Screenshots
-
-_Add screenshots of the application UI here after deployment:_
-
-1. Empty board state
-2. Feedback submission form
-3. Board with feedback posted
-4. Wallet connection dialog
-5. Transaction confirmation
-
 ## Initial Idea
 
-_This section is a placeholder for the original project idea or inspiration. Fill this in with your project's origin story or requirements._
+The Anonymous Feedback Board allows users to:
+1. Submit anonymous feedback messages to a public board
+2. View the current feedback message on the board
+3. Remove their own feedback (proven via zero-knowledge proof)
+4. Track the total number of submissions
 
 ## Troubleshooting
 
