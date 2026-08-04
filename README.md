@@ -1,8 +1,12 @@
 # Anonymous Feedback Board
-![alt text](<WhatsApp Image 2026-07-27 at 7.03.37 PM.jpeg>)
-## website link
+## website Screen Shot
+<img width="1869" height="909" alt="Screenshot 2026-07-29 113234" src="https://github.com/user-attachments/assets/9fb2243b-b228-46fe-92b9-48732649834d" />
 
+## website link
 https://anonymous-feedback-board-nu.vercel.app/
+
+## website demo video link
+https://drive.google.com/file/d/1FxmQprePJL0PFEPrrx8TMYO63moLWuH8/view?usp=sharing
 
 A privacy-preserving feedback board built on the Midnight Network where users can submit anonymous feedback and only the original author can remove their own submission.
 
