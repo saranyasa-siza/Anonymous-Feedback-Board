@@ -197,7 +197,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                 <Skeleton variant="circular" width={20} height={20} />
               )
             }
-            titleTypographyProps={{ color: 'primary' }}
+            slotProps={{ title: { color: 'primary' } }}
             title={toShortFormatContractAddress(deployedBoardAPI?.deployedContractAddress) ?? 'Loading...'}
             action={
               deployedBoardAPI?.deployedContractAddress ? (

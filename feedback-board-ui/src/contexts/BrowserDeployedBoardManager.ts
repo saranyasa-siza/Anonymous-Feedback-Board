@@ -220,15 +220,17 @@ export class BrowserDeployedBoardManager implements DeployedBoardAPIProvider {
 const initializeProviders = async (logger: Logger): Promise<FeedbackBoardProviders> => {
   const networkId = import.meta.env.VITE_NETWORK_ID as NetworkId;
   const connectedAPI = await connectToWallet(logger, networkId);
-  const zkConfigPath = window.location.origin; // '../../../contract/src/managed/bboard';
+  const zkConfigPath = window.location.origin;
   const keyMaterialProvider = new FetchZkConfigProvider<FeedbackBoardCircuitKeys>(zkConfigPath, fetch.bind(window));
   const config = await connectedAPI.getConfiguration();
+  const proofServerUrl = import.meta.env.VITE_PROOF_SERVER_URL as string;
   const inMemoryFeedbackBoardPrivateStateProvider = inMemoryPrivateStateProvider<string, FeedbackBoardPrivateState>();
   const shieldedAddresses = await connectedAPI.getShieldedAddresses();
+  logger.info({ proofServerUrl, walletProverUri: config.proverServerUri }, 'Using proof server');
   return {
     privateStateProvider: inMemoryFeedbackBoardPrivateStateProvider,
     zkConfigProvider: keyMaterialProvider,
-    proofProvider: httpClientProofProvider(config.proverServerUri!, keyMaterialProvider),
+    proofProvider: httpClientProofProvider(proofServerUrl, keyMaterialProvider),
     publicDataProvider: indexerPublicDataProvider(config.indexerUri, config.indexerWsUri),
     walletProvider: {
       getCoinPublicKey(): string {
@@ -238,29 +240,62 @@ const initializeProviders = async (logger: Logger): Promise<FeedbackBoardProvide
         return shieldedAddresses.shieldedEncryptionPublicKey;
       },
       balanceTx: async (tx: UnboundTransaction, ttl?: Date): Promise<FinalizedTransaction> => {
-        try {
-          logger.info({ tx, ttl }, 'Balancing transaction via wallet');
-          const serializedTx = toHex(tx.serialize());
-          const received = await connectedAPI.balanceUnsealedTransaction(serializedTx);
-          return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
-            'signature',
-            'proof',
-            'binding',
-            fromHex(received.tx),
-          );
-        } catch (e) {
-          logger.error({ error: e }, 'Error balancing transaction via wallet');
-          throw e;
+        const maxRetries = 2;
+        let lastError: Error | undefined;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            logger.info({ tx, ttl, attempt }, 'Balancing transaction via wallet');
+            const serializedTx = toHex(tx.serialize());
+            const received = await connectedAPI.balanceUnsealedTransaction(serializedTx);
+            logger.info({ attempt }, 'Transaction balanced successfully');
+            return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
+              'signature',
+              'proof',
+              'binding',
+              fromHex(received.tx),
+            );
+          } catch (e) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            logger.warn({ error: lastError, attempt, maxRetries }, `Transaction balancing failed (attempt ${attempt}/${maxRetries})`);
+            
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
+            }
+          }
         }
+        
+        logger.error({ error: lastError }, 'Transaction balancing failed after all retries');
+        throw lastError ?? new Error('Transaction balancing failed after all retries');
       },
     },
     midnightProvider: {
       submitTx: async (tx: FinalizedTransaction): Promise<TransactionId> => {
-        await connectedAPI.submitTransaction(toHex(tx.serialize()));
-        const txIdentifiers = tx.identifiers();
-        const txId = txIdentifiers[0]; // Return the first transaction ID
-        logger.info({ txIdentifiers }, 'Submitted transaction via wallet');
-        return txId;
+        const maxRetries = 3;
+        let lastError: Error | undefined;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            logger.info({ attempt, maxRetries }, 'Submitting transaction via wallet');
+            const serializedTx = toHex(tx.serialize());
+            await connectedAPI.submitTransaction(serializedTx);
+            const txIdentifiers = tx.identifiers();
+            const txId = txIdentifiers[0];
+            logger.info({ txId, attempt }, 'Transaction submitted successfully via wallet');
+            return txId;
+          } catch (e) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            logger.warn({ error: lastError, attempt, maxRetries }, `Transaction submission failed (attempt ${attempt}/${maxRetries})`);
+            
+            if (attempt < maxRetries) {
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            }
+          }
+        }
+        
+        logger.error({ error: lastError }, 'Transaction submission failed after all retries');
+        throw lastError ?? new Error('Transaction submission failed after all retries');
       },
     },
   };
@@ -269,16 +304,18 @@ const initializeProviders = async (logger: Logger): Promise<FeedbackBoardProvide
 /** @internal */
 const getFirstCompatibleWallet = (): InitialAPI | undefined => {
   if (!window.midnight) return undefined;
+  // Support multiple API versions for multi-wallet compatibility (Lace, 1AM, etc.)
+  const COMPATIBLE_CONNECTOR_API_VERSIONS = ['4.x', '5.x', '3.x'];
   return Object.values(window.midnight).find(
     (wallet): wallet is InitialAPI =>
       !!wallet &&
       typeof wallet === 'object' &&
       'apiVersion' in wallet &&
-      semver.satisfies(wallet.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
+      COMPATIBLE_CONNECTOR_API_VERSIONS.some(version => 
+        semver.satisfies(wallet.apiVersion, version)
+      ),
   );
 };
-
-const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
 
 /** @internal */
 const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAPI> => {
@@ -295,7 +332,7 @@ const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAP
       }),
       take(1),
       timeout({
-        first: 1_000,
+        first: 10_000,
         with: () =>
           throwError(() => {
             logger.error('Could not find wallet connector API');
@@ -318,13 +355,11 @@ const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAP
             return new Error('Midnight Lace wallet has failed to respond. Extension enabled?');
           }),
       }),
-      catchError((error, apis) =>
-        error
-          ? throwError(() => {
-              logger.error('Unable to enable connector API' + error);
-              return new Error('Application is not authorized');
-            })
-          : apis,
+      catchError((error) =>
+        throwError(() => {
+          logger.error({ error }, 'Unable to enable connector API');
+          return error instanceof Error ? error : new Error(String(error));
+        }),
       ),
     ),
   );

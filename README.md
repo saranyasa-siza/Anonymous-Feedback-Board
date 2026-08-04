@@ -17,9 +17,12 @@ The contract address placeholder must be replaced with your deployed contract ad
 
 | Network | Contract Address |
 |---------|------------------|
+| Preview | `503cd030a1cd9f629fcb58400a28c539e77bbbcab5db06329d3129a094e0a854` |
 | Preprod | `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` |
 
 After deployment, replace `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` in all configuration files.
+
+> Contract deployed on Preview network on 2026-08-04.
 
 ## Features
 
@@ -152,11 +155,11 @@ For the web interface, install the official Lace wallet extension:
 
 After installing, set up the Midnight wallet:
 1. Create a **new wallet** — Midnight will appear as a network option
-2. Set **Network** to **Preprod**
+2. Set **Network** to **Preview**
 3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
 4. Click **Enter Wallet**
-5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
-6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
+5. Fund your wallet with tNIGHT tokens from the [Preview Faucet](https://faucet.preview.midnight.network/)
+6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preview
 
 ## Installation
 
@@ -241,14 +244,14 @@ Compiling 2 circuits:
 To deploy the contract manually:
 
 ```bash
-NODE_OPTIONS="--max-old-space-size=12288" npm run deploy -- --network preprod
+NODE_OPTIONS="--max-old-space-size=12288" npm run deploy -- --network preview
 ```
 
 Or from the CLI directory:
 
 ```bash
 cd feedback-board-cli
-npm run preprod-remote
+npm run preview-remote
 ```
 
 ## After Deployment
@@ -282,7 +285,7 @@ VITE_CONTRACT_ADDRESS=<YOUR_DEPLOYED_CONTRACT_ADDRESS>
 ```env
 VITE_NETWORK_ID=preview
 VITE_PROOF_SERVER_URL=http://localhost:6300
-VITE_CONTRACT_ADDRESS=<YOUR_DEPLOYED_CONTRACT_ADDRESS>
+VITE_CONTRACT_ADDRESS=503cd030a1cd9f629fcb58400a28c539e77bbbcab5db06329d3129a094e0a854
 ```
 
 ### CLI Configuration
@@ -311,8 +314,8 @@ The CLI uses configuration files in `feedback-board-cli/`:
    ```
 
 3. **Using the CLI**:
-   - Choose option `1` to build a fresh wallet
-   - Fund your wallet using the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
+   - Choose option `1` to build a fresh wallet (or option `2` to restore from seed)
+   - Fund your wallet using the [Preview Faucet](https://faucet.preview.midnight.network/)
    - Deploy or join a contract
    - Submit or remove feedback
 

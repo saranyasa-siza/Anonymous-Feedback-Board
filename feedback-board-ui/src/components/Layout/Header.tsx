@@ -66,7 +66,7 @@ export const Header: React.FC = () => {
             Anonymous Feedback
           </Typography>
           <Typography variant="caption" sx={{ color: '#7c3aed', fontWeight: 500 }}>
-            Midnight Network · Preprod
+            Midnight Network · Preview
           </Typography>
         </Box>
       </Box>

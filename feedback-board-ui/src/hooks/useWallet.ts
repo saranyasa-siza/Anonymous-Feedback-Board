@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import '@midnight-ntwrk/dapp-connector-api';
 import type { InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 
-const COMPATIBLE_API_VERSION = '4.x';
+// Support multiple API versions for compatibility with different wallets (Lace, 1AM, etc.)
+const COMPATIBLE_API_VERSIONS = ['4.x', '5.x', '3.x'];
 
 const isCompatible = (w: unknown): w is InitialAPI => {
   if (!w || typeof w !== 'object') return false;
   const api = w as Record<string, unknown>;
   if (typeof api['connect'] !== 'function') return false;
   if (typeof api['apiVersion'] !== 'string') return false;
-  // Accept any 4.x version
-  return (api['apiVersion'] as string).startsWith('4.');
+  // Accept any compatible version (3.x, 4.x, 5.x for multi-wallet support)
+  return COMPATIBLE_API_VERSIONS.some(version => (api['apiVersion'] as string).startsWith(version.split('.')[0]));
 };
 
 const discoverWallets = (): InitialAPI[] =>
@@ -57,7 +58,7 @@ export const useWallet = () => {
   const connect = async (wallet: InitialAPI) => {
     setState((s) => ({ ...s, status: 'connecting', error: null }));
     try {
-      const api = await wallet.connect('preprod');
+      const api = await wallet.connect('preview');
       const status = await api.getConnectionStatus();
       if (status.status !== 'connected') throw new Error('Wallet connection failed.');
       let address: string | null = null;
