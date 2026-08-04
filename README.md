@@ -7,7 +7,7 @@
 https://anonymous-feedback-board-nu.vercel.app/
 
 ## website demo video link
-https://drive.google.com/file/d/1FxmQprePJL0PFEPrrx8TMYO63moLWuH8/view?usp=sharing
+[https://drive.google.com/file/d/1FxmQprePJL0PFEPrrx8TMYO63moLWuH8/view?usp=sharing](https://drive.google.com/file/d/1RsT0BHJvKiP5w4JTKWdbiHz0ZeVS9C_S/view?usp=drive_link)
 
 A privacy-preserving feedback board built on the Midnight Network where users can submit anonymous feedback and only the original author can remove their own submission.
 
@@ -23,7 +23,6 @@ The contract address placeholder must be replaced with your deployed contract ad
 | Network | Contract Address |
 |---------|------------------|
 | Preview | `503cd030a1cd9f629fcb58400a28c539e77bbbcab5db06329d3129a094e0a854` |
-| Preprod | `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` |
 
 After deployment, replace `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` in all configuration files.
 
