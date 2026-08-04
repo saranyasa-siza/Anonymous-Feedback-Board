@@ -1,6 +1,7 @@
 # Anonymous Feedback Board
 ## website Screen Shot
 <img width="1869" height="909" alt="Screenshot 2026-07-29 113234" src="https://github.com/user-attachments/assets/9fb2243b-b228-46fe-92b9-48732649834d" />
+<img width="1907" height="959" alt="image" src="https://github.com/user-attachments/assets/0f102b14-68b6-4a85-8d06-5d8147c393c3" />
 
 ## website link
 https://anonymous-feedback-board-nu.vercel.app/
