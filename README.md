@@ -1,12 +1,13 @@
 # Anonymous Feedback Board
 ## website Screen Shot
 <img width="1869" height="909" alt="Screenshot 2026-07-29 113234" src="https://github.com/user-attachments/assets/9fb2243b-b228-46fe-92b9-48732649834d" />
+<img width="1907" height="959" alt="image" src="https://github.com/user-attachments/assets/0f102b14-68b6-4a85-8d06-5d8147c393c3" />
 
 ## website link
 https://anonymous-feedback-board-nu.vercel.app/
 
 ## website demo video link
-https://drive.google.com/file/d/1FxmQprePJL0PFEPrrx8TMYO63moLWuH8/view?usp=sharing
+[https://drive.google.com/file/d/1FxmQprePJL0PFEPrrx8TMYO63moLWuH8/view?usp=sharing](https://drive.google.com/file/d/1RsT0BHJvKiP5w4JTKWdbiHz0ZeVS9C_S/view?usp=drive_link)
 
 A privacy-preserving feedback board built on the Midnight Network where users can submit anonymous feedback and only the original author can remove their own submission.
 
@@ -22,7 +23,6 @@ The contract address placeholder must be replaced with your deployed contract ad
 | Network | Contract Address |
 |---------|------------------|
 | Preview | `503cd030a1cd9f629fcb58400a28c539e77bbbcab5db06329d3129a094e0a854` |
-| Preprod | `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` |
 
 After deployment, replace `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` in all configuration files.
 
@@ -347,19 +347,13 @@ The CLI uses configuration files in `feedback-board-cli/`:
    - Deploy or join a contract
    - Submit or remove feedback through the web interface
 
-## Screenshots
-
-_Add screenshots of the application UI here after deployment:_
-
-1. Empty board state
-2. Feedback submission form
-3. Board with feedback posted
-4. Wallet connection dialog
-5. Transaction confirmation
-
 ## Initial Idea
 
-_This section is a placeholder for the original project idea or inspiration. Fill this in with your project's origin story or requirements._
+The Anonymous Feedback Board allows users to:
+1. Submit anonymous feedback messages to a public board
+2. View the current feedback message on the board
+3. Remove their own feedback (proven via zero-knowledge proof)
+4. Track the total number of submissions
 
 ## Troubleshooting
 
