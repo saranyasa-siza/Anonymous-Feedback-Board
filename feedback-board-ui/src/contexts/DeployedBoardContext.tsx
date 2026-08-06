@@ -13,9 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React, { type PropsWithChildren, createContext } from 'react';
+import React, { type PropsWithChildren, createContext, useRef, useEffect } from 'react';
 import { type DeployedBoardAPIProvider, BrowserDeployedBoardManager } from './BrowserDeployedBoardManager';
 import { type Logger } from 'pino';
+import { useWalletContext } from './WalletContext';
 
 /**
  * Encapsulates a deployed boards provider as a context object.
@@ -34,8 +35,19 @@ export type DeployedBoardProviderProps = PropsWithChildren<{
  * A React component that sets a new {@link BrowserDeployedBoardManager} object as the currently
  * in-scope deployed board provider.
  */
-export const DeployedBoardProvider: React.FC<Readonly<DeployedBoardProviderProps>> = ({ logger, children }) => (
-  <DeployedBoardContext.Provider value={new BrowserDeployedBoardManager(logger)}>
-    {children}
-  </DeployedBoardContext.Provider>
-);
+export const DeployedBoardProvider: React.FC<Readonly<DeployedBoardProviderProps>> = ({ logger, children }) => {
+  const { connectedAPI } = useWalletContext();
+  const managerRef = useRef(new BrowserDeployedBoardManager(logger));
+
+  useEffect(() => {
+    if (connectedAPI) {
+      managerRef.current.setWallet(connectedAPI);
+    }
+  }, [connectedAPI]);
+
+  return (
+    <DeployedBoardContext.Provider value={managerRef.current}>
+      {children}
+    </DeployedBoardContext.Provider>
+  );
+};

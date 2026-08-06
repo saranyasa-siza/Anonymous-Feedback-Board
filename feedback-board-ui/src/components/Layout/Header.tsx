@@ -19,10 +19,13 @@ import {
   Menu, MenuItem, ListItemIcon, ListItemText, Typography,
 } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
-import { useWallet } from '../../hooks/useWallet';
+import { useWalletContext } from '../../contexts/WalletContext';
 
 export const Header: React.FC = () => {
-  const { isConnected, isConnecting, hasWallets, availableWallets, address, connectedWalletName, error, connect, disconnect } = useWallet();
+  const { status, availableWallets, address, connectedWalletName, error, connect, disconnect } = useWalletContext();
+  const isConnected = status === 'connected';
+  const isConnecting = status === 'connecting';
+  const hasWallets = availableWallets.length > 0;
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const shortAddress = address ? `${address.slice(0, 10)}...${address.slice(-8)}` : null;

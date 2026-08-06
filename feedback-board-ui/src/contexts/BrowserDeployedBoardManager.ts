@@ -40,7 +40,6 @@ import { ConnectedAPI, type InitialAPI } from '@midnight-ntwrk/dapp-connector-ap
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import semver from 'semver';
 import {
   Binding,
   FinalizedTransaction,
@@ -51,8 +50,8 @@ import {
 } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { FeedbackBoardPrivateState } from '../../../contract/src/witnesses';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
-import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
+import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
 /**
  * An in-progress bulletin board deployment.
@@ -133,13 +132,18 @@ export class BrowserDeployedBoardManager implements DeployedBoardAPIProvider {
    *
    * @param logger The `pino` logger to for logging.
    */
-  constructor(private readonly logger: Logger) {
+  constructor(private readonly logger: Logger, private walletAPI: ConnectedAPI | null = null) {
     this.#boardDeploymentsSubject = new BehaviorSubject<Array<BehaviorSubject<BoardDeployment>>>([]);
     this.boardDeployments$ = this.#boardDeploymentsSubject;
   }
 
   /** @inheritdoc */
   readonly boardDeployments$: Observable<Array<Observable<BoardDeployment>>>;
+
+  setWallet(walletAPI: ConnectedAPI): void {
+    this.walletAPI = walletAPI;
+    this.#initializedProviders = undefined; // reset so next deploy uses the new wallet
+  }
 
   /** @inheritdoc */
   resolve(contractAddress?: ContractAddress): Observable<BoardDeployment> {
@@ -169,13 +173,8 @@ export class BrowserDeployedBoardManager implements DeployedBoardAPIProvider {
   }
 
   private getProviders(): Promise<FeedbackBoardProviders> {
-    // We use a cached `Promise` to hold the providers. This will:
-    //
-    // 1. Cache and re-use the providers (including the configured connector API), and
-    // 2. Act as a synchronization point if multiple contract deploys or joins run concurrently.
-    //    Concurrent calls to `getProviders()` will receive, and ultimately await, the same
-    //    `Promise`.
-    return this.#initializedProviders ?? (this.#initializedProviders = initializeProviders(this.logger));
+    if (!this.walletAPI) throw new Error('No wallet connected. Please connect your wallet first.');
+    return this.#initializedProviders ?? (this.#initializedProviders = initializeProviders(this.logger, this.walletAPI));
   }
 
   private async deployDeployment(deployment: BehaviorSubject<BoardDeployment>): Promise<void> {
@@ -217,13 +216,12 @@ export class BrowserDeployedBoardManager implements DeployedBoardAPIProvider {
 }
 
 /** @internal */
-const initializeProviders = async (logger: Logger): Promise<FeedbackBoardProviders> => {
-  const networkId = import.meta.env.VITE_NETWORK_ID as NetworkId;
-  const connectedAPI = await connectToWallet(logger, networkId);
+const initializeProviders = async (logger: Logger, walletAPI: ConnectedAPI): Promise<FeedbackBoardProviders> => {
+  const connectedAPI = await connectToWallet(logger, walletAPI);
   const zkConfigPath = window.location.origin;
   const keyMaterialProvider = new FetchZkConfigProvider<FeedbackBoardCircuitKeys>(zkConfigPath, fetch.bind(window));
   const config = await connectedAPI.getConfiguration();
-  const proofServerUrl = import.meta.env.VITE_PROOF_SERVER_URL as string;
+  const proofServerUrl = config.proverServerUri || (import.meta.env.VITE_PROOF_SERVER_URL as string);
   const inMemoryFeedbackBoardPrivateStateProvider = inMemoryPrivateStateProvider<string, FeedbackBoardPrivateState>();
   const shieldedAddresses = await connectedAPI.getShieldedAddresses();
   logger.info({ proofServerUrl, walletProverUri: config.proverServerUri }, 'Using proof server');
@@ -302,56 +300,29 @@ const initializeProviders = async (logger: Logger): Promise<FeedbackBoardProvide
 };
 
 /** @internal */
-const getFirstCompatibleWallet = (): InitialAPI | undefined => {
-  if (!window.midnight) return undefined;
-  // Support multiple API versions for multi-wallet compatibility (Lace, 1AM, etc.)
-  const COMPATIBLE_CONNECTOR_API_VERSIONS = ['4.x', '5.x', '3.x'];
-  return Object.values(window.midnight).find(
-    (wallet): wallet is InitialAPI =>
-      !!wallet &&
-      typeof wallet === 'object' &&
-      'apiVersion' in wallet &&
-      COMPATIBLE_CONNECTOR_API_VERSIONS.some(version => 
-        semver.satisfies(wallet.apiVersion, version)
-      ),
-  );
-};
-
-/** @internal */
-const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAPI> => {
+const connectToWallet = (logger: Logger, connectedAPI: ConnectedAPI): Promise<ConnectedAPI> => {
   return firstValueFrom(
     fnPipe(
       interval(100),
-      map(() => getFirstCompatibleWallet()),
-      tap((connectorAPI) => {
-        logger.info(connectorAPI, 'Check for wallet connector API');
+      map(() => connectedAPI),
+      tap((api) => {
+        logger.info(api, 'Using pre-connected wallet connector API');
       }),
-      filter((connectorAPI): connectorAPI is InitialAPI => !!connectorAPI),
-      tap((connectorAPI) => {
-        logger.info(connectorAPI, 'Compatible wallet connector API found. Connecting.');
-      }),
+      filter((api): api is ConnectedAPI => !!api),
       take(1),
-      timeout({
-        first: 10_000,
-        with: () =>
-          throwError(() => {
-            logger.error('Could not find wallet connector API');
-
-            return new Error('Could not find Midnight Lace wallet. Extension installed?');
-          }),
-      }),
-      concatMap(async (initialAPI) => {
-        const connectedAPI = await initialAPI.connect(networkId);
-        const connectionStatus = await connectedAPI.getConnectionStatus();
+      concatMap(async (api) => {
+        const connectionStatus = await api.getConnectionStatus();
         logger.info(connectionStatus, 'Wallet connector API enabled status');
-        return connectedAPI;
+        if (connectionStatus.status !== 'connected') {
+          throw new Error('Wallet is not connected.');
+        }
+        return api;
       }),
       timeout({
         first: 5_000,
         with: () =>
           throwError(() => {
             logger.error('Wallet connector API has failed to respond');
-
             return new Error('Midnight Lace wallet has failed to respond. Extension enabled?');
           }),
       }),
